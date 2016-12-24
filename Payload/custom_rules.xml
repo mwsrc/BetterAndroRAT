@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+Ant rules for DexGuard, the Android app optimizer and obfuscator.
+
+You can enable DexGuard for Ant builds as follows:
+1) Define dexguard.dir in local.properties in your Android project, e.g.
+     dexguard.dir=/usr/local/dexguard
+2) Copy the following files from ${dexguard.dir}/ant to your Android project:
+     custom_rules.xml
+     dexguard-project.txt
+
+The build process will automatically pick up custom options from the
+following (optional) configuration files:
+     dexguard-project.txt         (for all targets)
+     dexguard-project-debug.txt   (for target 'debug')
+     dexguard-project-release.txt (for target 'release')
+     proguard-project.txt         (for backward compatibility with ProGuard)
+
+-->
+
+<project name="dexguard_rules" default="debug">
+
+    <fail message="Please define 'dexguard.dir' in the file 'local.properties'"
+        unless="dexguard.dir" />
+
+    <fail message="Please correct 'dexguard.dir' in the file 'local.properties' ('${dexguard.dir}' does not exist)">
+        <condition><not><resourceexists>
+            <file file="${dexguard.dir}"/>
+        </resourceexists></not></condition>
+    </fail>
+
+    <fail message="Please correct 'sdk.dir' in the file 'local.properties' ('${sdk.dir}' does not exist)">
+        <condition><not><resourceexists>
+            <file file="${sdk.dir}"/>
+        </resourceexists></not></condition>
+    </fail>
+
+    <taskdef resource="com/saikoa/dexguard/ant/task.properties"
+        classpath="${dexguard.dir}/lib/dexguard.jar" />
+
+    <macrodef name="dexguard-package-helper">
+        <attribute name="configuration" />
+        <element name="dexguard-options" optional="yes" />
+        <sequential>
+            <property name="obfuscate.absolute.dir"
+                location="${out.absolute.dir}/proguard" />
+            <property name="out.native.libs.absolute.dir"
+                location="${out.absolute.dir}/native" />
+            <mkdir dir="${obfuscate.absolute.dir}" />
+            <mkdir dir="${out.native.libs.absolute.dir}" />
+            <copyall todir="${out.native.libs.absolute.dir}/lib">
+                <fileset dir="${native.libs.absolute.dir}">
+                    <include name="*/*.so" />
+                </fileset>
+                <filteredpath>
+                    <path refid="project.library.native.folder.path" />
+                    <include name="*/*.so" />
+                </filteredpath>
+            </copyall>
+            <dexguard
+                verbose="${verbose}"
+                keystore="${key.store}"
+                keystorepassword="${key.store.password}"
+                keyalias="${key.alias}"
+                keypassword="${key.alias.password}"
+                printseeds="${obfuscate.absolute.dir}/seeds.txt"
+                printusage="${obfuscate.absolute.dir}/usage.txt"
+                printmapping="${obfuscate.absolute.dir}/mapping.txt"
+                configuration="@{configuration}">
+                <configuration file="proguard-project.txt" />
+                <configuration file="dexguard-project.txt" />
+                <configuration file="dexguard-project-${build.target}.txt" />
+                <dexguard-options />
+                <libraryjar refid="project.target.class.path" />
+            </dexguard>
+        </sequential>
+    </macrodef>
+
+    <target name="-package-resources" depends="-crunch">
+        <do-only-if-not-library elseText="Library project: do not package resources..." >
+            <aapt executable="${aapt}"
+                command="package"
+                versioncode="${version.code}"
+                versionname="${version.name}"
+                debug="${build.is.packaging.debug}"
+                manifest="${out.manifest.abs.file}"
+                assets="${asset.absolute.dir}"
+                androidjar="${project.target.android.jar}"
+                apkfolder="${out.absolute.dir}"
+                nocrunch="${build.packaging.nocrunch}"
+                resourcefilename="${resource.package.file.name}"
+                resourcefilter="${aapt.resource.filter}"
+                libraryResFolderPathRefid="project.library.res.folder.path"
+                libraryPackagesRefid="project.library.packages"
+                libraryRFileRefid="project.library.bin.r.file.path"
+                previousBuildType="${build.last.target}"
+                buildType="${build.target}"
+                ignoreAssets="${aapt.ignore.assets}">
+                <res path="${out.res.absolute.dir}" />
+                <res path="${resource.absolute.dir}" />
+            </aapt>
+        </do-only-if-not-library>
+    </target>
+
+    <target name="-package" depends="-compile, -post-compile, -package-resources">
+        <if condition="${project.is.library}">
+            <then>
+                <dexguard-package-helper
+                    configuration="${dexguard.dir}/lib/dexguard-library-${build.target}.pro">
+                    <dexguard-options>
+                        <injar path="${out.classes.absolute.dir}" filter="**.class" />
+                        <injar path="${source.absolute.dir}"      filter="!**.java" />
+                        <injar refid="project.all.jars.path" />
+                        <outjar path="${out.library.jar.file}" filter="!${project.app.package.path}/R.class,!${project.app.package.path}/R$*.class,!${project.app.package.path}/Manifest.class,!${project.app.package.path}/Manifest$*.class,!${project.app.package.path}/BuildConfig.class" />
+                    </dexguard-options>
+                </dexguard-package-helper>
+            </then>
+            <else>
+            <if condition="${build.is.instrumented}">
+                <then>
+                    <dexguard-package-helper
+                        configuration="${dexguard.dir}/lib/dexguard-${build.target}.pro">
+                        <dexguard-options>
+                            <injar path="${out.classes.absolute.dir}"     filter="**.class" />
+                            <injar refid="project.all.jars.path"          filter="!org/w3c/dom/**,!org/xml/sax/**,!org/xmlpull/v1/**,!org/apache/commons/logging/Log.class,org/apache/http/Consts.class,org/apache/http/HttpHeaders.class,org/apache/http/entity/ContentType.class,org/apache/http/util/Args.class,org/apache/http/util/Asserts.class,org/apache/http/util/CharsetUtils.class,org/apache/http/util/NetUtils.class,org/apache/http/util/TextUtils.class,org/apache/http/conn/socket/**,org/apache/http/entity/mime/**,org/apache/http/**cache/**,org/apache/http/**config/**,org/apache/http/**nio/**,org/apache/http/**pool/**,!org/apache/http/**,!org/json/*,!META-INF/**,!.hg**,!**/.hg**,!.git**,!**/.git**,!.svn**,!**/.svn**,!CVS,!CVS/**,!**/CVS,!**/CVS/**,!SCCS,!SCCS/**,!**/SCCS,!**/SCCS/**,**.class,lib/*/*.so,!**.so,!**.keep,!**.DS_Store,!**.aidl,!**.rs,!**.rsh,!**.d,!**.java,!**.scala,!**.scc,!**.swp,!**thumbs.db,!**picasa.ini,!**package.html,!**overview.html,!**.AIDL,!**.RS,!**.RSH,!**.D,!**.JAVA,!**.SCALA,!**.SCC,!**.SWP,!**THUMBS.DB,!**PICASA.INI,!**PACKAGE.HTML,!**OVERVIEW.HTML" />
+                            <injar path="${out.native.libs.absolute.dir}" filter="lib/*/*.so" />
+                            <injar path="${out.absolute.dir}/${resource.package.file.name}" />
+                            <injar path="${emma.dir}/emma_device.jar" />
+                            <outjar path="${out.final.file}" />
+                        </dexguard-options>
+                    </dexguard-package-helper>
+                </then>
+                <else>
+                    <dexguard-package-helper
+                        configuration="${dexguard.dir}/lib/dexguard-${build.target}.pro">
+                        <dexguard-options>
+                            <injar path="${out.classes.absolute.dir}"     filter="**.class" />
+                            <injar refid="project.all.jars.path"          filter="!org/w3c/dom/**,!org/xml/sax/**,!org/xmlpull/v1/**,!org/apache/commons/logging/Log.class,org/apache/http/Consts.class,org/apache/http/HttpHeaders.class,org/apache/http/entity/ContentType.class,org/apache/http/util/Args.class,org/apache/http/util/Asserts.class,org/apache/http/util/CharsetUtils.class,org/apache/http/util/NetUtils.class,org/apache/http/util/TextUtils.class,org/apache/http/conn/socket/**,org/apache/http/entity/mime/**,org/apache/http/**cache/**,org/apache/http/**config/**,org/apache/http/**nio/**,org/apache/http/**pool/**,!org/apache/http/**,!org/json/*,!META-INF/**,!.hg**,!**/.hg**,!.git**,!**/.git**,!.svn**,!**/.svn**,!CVS,!CVS/**,!**/CVS,!**/CVS/**,!SCCS,!SCCS/**,!**/SCCS,!**/SCCS/**,**.class,lib/*/*.so,!**.so,!**.keep,!**.DS_Store,!**.aidl,!**.rs,!**.rsh,!**.d,!**.java,!**.scala,!**.scc,!**.swp,!**thumbs.db,!**picasa.ini,!**package.html,!**overview.html,!**.AIDL,!**.RS,!**.RSH,!**.D,!**.JAVA,!**.SCALA,!**.SCC,!**.SWP,!**THUMBS.DB,!**PICASA.INI,!**PACKAGE.HTML,!**OVERVIEW.HTML" />
+                            <injar path="${out.native.libs.absolute.dir}" filter="lib/*/*.so" />
+                            <injar path="${out.absolute.dir}/${resource.package.file.name}" />
+                            <outjar path="${out.final.file}" />
+                        </dexguard-options>
+                    </dexguard-package-helper>
+                </else>
+            </if>
+            </else>
+        </if>
+    </target>
+
+    <target name="release"    depends="-set-release-mode, -release-prompt-for-password, -package, -post-package, -post-build" />
+    <target name="debug"      depends="-set-debug-mode, -set-debug-files, -package, -post-package, -post-build" />
+    <target name="instrument" depends="-set-instrumented-mode, debug" />
+</project>

